@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa de Reclamos - Río Colorado</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; }
+    #map { width: 100%; height: 100vh; }
+    .popup-form {
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      font-size: 14px;
+      padding: 4px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #1e88e5;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1565c0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    // 🔗 Pegar aquí la URL del Web App de Google Apps Script
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyjLuJBp_tsaKtwx-PdECC0CLHo2AyaThsZwSLQ3pFM5g7NimotrlV2SMBG-AxeQfIrFg/exec";
+
+    // Inicializar mapa centrado en Río Colorado
+    const map = L.map('map').setView([-39.016, -64.1], 14);
+
+    // Capa base (puede cambiarse por Satélite, OSM, etc.)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let marker;
+
+    // Evento clic en el mapa
+    map.on('click', function (e) {
+      const { lat, lng } = e.latlng;
+
+      // Si ya hay un marcador, se quita
+      if (marker) {
+        map.removeLayer(marker);
+      }
+
+      // Crear un nuevo marcador en la posición clickeada
+      marker = L.marker([lat, lng]).addTo(map);
+
+      // Contenido del formulario
+      const formHTML = `
+        <div class="popup-form">
+          <label><b>Tipo de reclamo:</b></label>
+          <select id="tipo">
+            <option value="Pérdida de agua">Pérdida de agua</option>
+            <option value="Pavimento roto">Pavimento roto</option>
+            <option value="Arbol caído">Árbol caído</option>
+            <option value="Inundación">Inundación</option>
+            <option value="Otro">Otro</option>
+          </select>
+
+          <label><b>Descripción:</b></label>
+          <textarea id="descripcion" rows="3" placeholder="Describa el problema..."></textarea>
+
+          <label><b>Nombre (opcional):</b></label>
+          <input id="nombre" type="text" placeholder="Tu nombre">
+
+          <button id="enviarBtn">Enviar reclamo</button>
+        </div>
+      `;
+
+      marker.bindPopup(formHTML).openPopup();
+
+      // Cuando se abra el popup, activar el botón
+      marker.on('popupopen', function () {
+        document.getElementById('enviarBtn').addEventListener('click', async function () {
+          const tipo = document.getElementById('tipo').value;
+          const descripcion = document.getElementById('descripcion').value.trim();
+          const nombre = document.getElementById('nombre').value.trim();
+
+          if (!descripcion) {
+            alert('Por favor, escriba una descripción.');
+            return;
+          }
+
+          const data = { tipo, descripcion, nombre, lat, lng };
+
+          try {
+            const response = await fetch(WEB_APP_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+
+            alert('✅ Reclamo enviado correctamente. ¡Gracias!');
+            map.removeLayer(marker);
+          } catch (error) {
+            alert('❌ Error al enviar el reclamo.');
+            console.error(error);
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
