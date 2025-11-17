@@ -1,138 +1,150 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mapa de Reclamos - Río Colorado</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Geo-Reclamos Río Colorado</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+  />
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js">
+  </script>
+
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; }
+    html, body { margin: 0; padding: 0; height: 100%; }
     #map { width: 100%; height: 100vh; }
-    .popup-form {
-      font-size: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+
+    .info-box {
+      width: 260px;
+      font-family: Arial, sans-serif;
     }
-    input, select, textarea, button {
+    .info-box input, .info-box textarea, .info-box select, .info-box button {
       width: 100%;
+      margin-top: 6px;
+      padding: 6px;
+      box-sizing: border-box;
       font-size: 14px;
-      padding: 4px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
     }
-    button {
-      background-color: #1e88e5;
-      color: white;
-      border: none;
-      cursor: pointer;
+
+    .header {
+      position: fixed;
+      top:0; left:0; right:0;
+      height: 52px;
+      background: #004d40;
+      color:white;
+      display:flex;
+      align-items:center;
+      padding-left: 16px;
+      z-index: 999;
+      font-size:16px;
+      font-weight:bold;
     }
-    button:hover {
-      background-color: #1565c0;
-    }
+
+    #map { margin-top: 52px; height: calc(100vh - 52px); }
   </style>
 </head>
+
 <body>
+  <div class="header">Geo-Reclamos • Río Colorado</div>
   <div id="map"></div>
 
   <script>
-    // 🔗 Pegar aquí la URL del Web App de Google Apps Script
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbycj-xF8zy6K1iGxtUx185M7zvxSqCLKggNgc06gutKA5rVifChyO53ybJwYeEoVJQNmw/exec";
+    // Pegar aquí la URL del Apps Script (Web App)
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbym_YYgdaSowUUPf-P3-LTWAE7yXa0AW5S1Ya1sQtjoKICy2I2GBrVDuOmaWXm6L1joSQ/exec";
 
-    // Inicializar mapa centrado en Río Colorado
-    const map = L.map('map').setView([-39.016, -64.1], 14);
+    let map = L.map('map').setView([-39.016, -64.1], 14);
 
-    // Capa base (puede cambiarse por Satélite, OSM, etc.)
+    // Capa base OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    let marker;
+    let marker = null;
 
-    // Evento clic en el mapa
-    map.on('click', function (e) {
-      const { lat, lng } = e.latlng;
+    // Evento click para crear el reclamo
+    map.on('click', function(e) {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
 
-      // Si ya hay un marcador, se quita
-      if (marker) {
-        map.removeLayer(marker);
-      }
-
-      // Crear un nuevo marcador en la posición clickeada
+      if (marker) map.removeLayer(marker);
       marker = L.marker([lat, lng]).addTo(map);
 
-      // Contenido del formulario
-      const formHTML = `
-        <div class="popup-form">
+      // Contenido del popup con formulario
+      const content = `
+        <div class="info-box">
           <label><b>Tipo de reclamo:</b></label>
-          <select id="tipo">
+          <select id="g_tipo">
             <option value="Pérdida de agua">Pérdida de agua</option>
             <option value="Pavimento roto">Pavimento roto</option>
-            <option value="Arbol caído">Árbol caído</option>
             <option value="Inundación">Inundación</option>
+            <option value="Arbol caído">Árbol caído</option>
             <option value="Otro">Otro</option>
           </select>
 
           <label><b>Descripción:</b></label>
-          <textarea id="descripcion" rows="3" placeholder="Describa el problema..."></textarea>
+          <textarea id="g_descripcion" rows="3"></textarea>
 
           <label><b>Nombre (opcional):</b></label>
-          <input id="nombre" type="text" placeholder="Tu nombre">
+          <input id="g_nombre" type="text" />
 
-          <button id="enviarBtn">Enviar reclamo</button>
+          <button id="g_enviar">Enviar</button>
         </div>
       `;
 
-      marker.bindPopup(formHTML).openPopup();
+      marker.bindPopup(content).openPopup();
 
-      // Cuando se abra el popup, activar el botón
-      marker.on('popupopen', function () {
-        document.getElementById('enviarBtn').addEventListener('click', async function () {
-          const tipo = document.getElementById('tipo').value;
-          const descripcion = document.getElementById('descripcion').value.trim();
-          const nombre = document.getElementById('nombre').value.trim();
+      // Evento: cuando se abra el popup, asignar botón
+      marker.on('popupopen', function() {
+        document.getElementById('g_enviar').onclick = function() {
+          const tipo = document.getElementById('g_tipo').value;
+          const descripcion = document.getElementById('g_descripcion').value.trim();
+          const nombre = document.getElementById('g_nombre').value.trim();
 
           if (!descripcion) {
-            alert('Por favor, escriba una descripción.');
+            alert("Por favor escriba una descripción.");
             return;
           }
 
-const data = { tipo, descripcion, nombre, lat, lng };
+          // Envío por POST clásico evitando CORS
+          sendForm({
+            tipo: tipo,
+            descripcion: descripcion,
+            nombre: nombre,
+            lat: lat,
+            lng: lng
+          });
 
-// crear un formulario oculto y enviarlo (evita problemas de CORS)
-function postForm(url, params) {
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = url;
-  form.style.display = 'none';
-
-  for (const key in params) {
-    if (params.hasOwnProperty(key)) {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = params[key];
-      form.appendChild(input);
-    }
-  }
-
-  document.body.appendChild(form);
-  form.submit();
-  // opcional: remover el form luego de un corto timeout
-  setTimeout(() => document.body.removeChild(form), 1000);
-}
-
-postForm(WEB_APP_URL, data);
-alert('✅ Reclamo enviado correctamente. ¡Gracias!');
-map.removeLayer(marker);
-        });
+          alert("✓ Reclamo enviado. Gracias.");
+          map.removeLayer(marker);
+        };
       });
     });
+
+    // POST mediante formulario oculto
+    function sendForm(data) {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = WEB_APP_URL;
+      form.style.display = "none";
+
+      for (const key in data) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = data[key];
+        form.appendChild(input);
+      }
+
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(() => document.body.removeChild(form), 1500);
+    }
   </script>
 </body>
 </html>
-
-
-
