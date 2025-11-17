@@ -38,7 +38,7 @@
 
   <script>
     // 🔗 Pegar aquí la URL del Web App de Google Apps Script
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwCqKJhO7Y5cThKzCFyc24xzbePiOD7tFIklo_SiZLXW63d-qsWcNdnqOWIZ5f8Kv3n0g/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbycj-xF8zy6K1iGxtUx185M7zvxSqCLKggNgc06gutKA5rVifChyO53ybJwYeEoVJQNmw/exec";
 
     // Inicializar mapa centrado en Río Colorado
     const map = L.map('map').setView([-39.016, -64.1], 14);
@@ -99,27 +99,40 @@
             return;
           }
 
-          const data = { tipo, descripcion, nombre, lat, lng };
+const data = { tipo, descripcion, nombre, lat, lng };
 
-          try {
-            const response = await fetch(WEB_APP_URL, {
-              method: 'POST',
-              mode: 'no-cors',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(data)
-            });
+// crear un formulario oculto y enviarlo (evita problemas de CORS)
+function postForm(url, params) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = url;
+  form.style.display = 'none';
 
-            alert('✅ Reclamo enviado correctamente. ¡Gracias!');
-            map.removeLayer(marker);
-          } catch (error) {
-            alert('❌ Error al enviar el reclamo.');
-            console.error(error);
-          }
+  for (const key in params) {
+    if (params.hasOwnProperty(key)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = params[key];
+      form.appendChild(input);
+    }
+  }
+
+  document.body.appendChild(form);
+  form.submit();
+  // opcional: remover el form luego de un corto timeout
+  setTimeout(() => document.body.removeChild(form), 1000);
+}
+
+postForm(WEB_APP_URL, data);
+alert('✅ Reclamo enviado correctamente. ¡Gracias!');
+map.removeLayer(marker);
         });
       });
     });
   </script>
 </body>
 </html>
+
 
 
