@@ -5,69 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Geo-Reclamos Río Colorado</title>
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-  />
-
-  <!-- Leaflet JS -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js">
-  </script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; }
-    #map { width: 100%; height: 100vh; }
-
-    .info-box {
-      width: 260px;
-      font-family: Arial, sans-serif;
-    }
+    html,body { height:100%; margin:0; padding:0; }
+    #map { width:100%; height:100vh; }
+    .info-box { width:260px; font-family: Arial, sans-serif; }
     .info-box input, .info-box textarea, .info-box select, .info-box button {
-      width: 100%;
-      margin-top: 6px;
-      padding: 6px;
-      box-sizing: border-box;
-      font-size: 14px;
+      width:100%; margin-top:6px; padding:6px; box-sizing:border-box; font-size:14px;
     }
-
-    .header {
-      position: fixed;
-      top:0; left:0; right:0;
-      height: 52px;
-      background: #004d40;
-      color:white;
-      display:flex;
-      align-items:center;
-      padding-left: 16px;
-      z-index: 999;
-      font-size:16px;
-      font-weight:bold;
-    }
-
-    #map { margin-top: 52px; height: calc(100vh - 52px); }
+    .header { position: fixed; top:0; left:0; right:0; height:52px; background:#004d40; color:white;
+      display:flex; align-items:center; padding-left:16px; z-index:999; font-weight:bold; }
+    #map { margin-top:52px; height: calc(100vh - 52px); }
   </style>
 </head>
-
 <body>
   <div class="header">Geo-Reclamos • Río Colorado</div>
   <div id="map"></div>
 
   <script>
-    // Pegar aquí la URL del Apps Script (Web App)
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwg1GloAfkFf7Fn7WwIPk-TDiKrmQFG-vM3hmh9Ju9lr1aGqVDdmpXYuBy0LdPLL2cG/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBp9iTMx0LpiM-K0rK3qZGEzxJiRmHJopi14mZ4N_s3qCUDM_3HVoUoXlU5En_xgke/exec";
 
-    let map = L.map('map').setView([-39.016, -64.1], 14);
+    const map = L.map('map').setView([-39.016, -64.1], 14);
 
-    // Capa base OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
 
     let marker = null;
 
-    // Evento click para crear el reclamo
     map.on('click', function(e) {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
@@ -75,7 +40,6 @@
       if (marker) map.removeLayer(marker);
       marker = L.marker([lat, lng]).addTo(map);
 
-      // Contenido del popup con formulario
       const content = `
         <div class="info-box">
           <label><b>Tipo de reclamo:</b></label>
@@ -83,73 +47,51 @@
             <option value="Pérdida de agua">Pérdida de agua</option>
             <option value="Pavimento roto">Pavimento roto</option>
             <option value="Inundación">Inundación</option>
-            <option value="Arbol caído">Árbol caído</option>
+            <option value="Arbol caído">Arbol caído</option>
             <option value="Otro">Otro</option>
           </select>
-
           <label><b>Descripción:</b></label>
           <textarea id="g_descripcion" rows="3"></textarea>
-
           <label><b>Nombre (opcional):</b></label>
           <input id="g_nombre" type="text" />
-
           <button id="g_enviar">Enviar</button>
         </div>
       `;
 
       marker.bindPopup(content).openPopup();
 
-      // Evento: cuando se abra el popup, asignar botón
       marker.on('popupopen', function() {
         document.getElementById('g_enviar').onclick = function() {
           const tipo = document.getElementById('g_tipo').value;
           const descripcion = document.getElementById('g_descripcion').value.trim();
           const nombre = document.getElementById('g_nombre').value.trim();
 
-          if (!descripcion) {
-            alert("Por favor escriba una descripción.");
-            return;
+          if (!descripcion) { alert("Por favor escriba una descripción."); return; }
+
+          // Envío por POST clásico (form) para evitar CORS
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = WEB_APP_URL;
+          form.style.display = 'none';
+
+          const payload = { tipo, descripcion, nombre, lat, lng };
+          for (const k in payload) {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = k;
+            inp.value = payload[k];
+            form.appendChild(inp);
           }
 
-          // Envío por POST clásico evitando CORS
-          sendForm({
-            tipo: tipo,
-            descripcion: descripcion,
-            nombre: nombre,
-            lat: lat,
-            lng: lng
-          });
+          document.body.appendChild(form);
+          form.submit();
+          setTimeout(()=>document.body.removeChild(form), 1500);
 
           alert("✓ Reclamo enviado. Gracias.");
           map.removeLayer(marker);
         };
       });
     });
-
-    // POST mediante formulario oculto
-    function sendForm(data) {
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = WEB_APP_URL;
-      form.style.display = "none";
-
-      for (const key in data) {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = data[key];
-        form.appendChild(input);
-      }
-
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(() => document.body.removeChild(form), 1500);
-    }
   </script>
 </body>
 </html>
-
-
-
-
-
