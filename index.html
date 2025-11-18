@@ -61,31 +61,32 @@
       marker.bindPopup(content).openPopup();
 
       marker.on('popupopen', function() {
-        document.getElementById('g_enviar').onclick = function() {
+        document.getElementById('g_enviar').onclick = async function() {
           const tipo = document.getElementById('g_tipo').value;
           const descripcion = document.getElementById('g_descripcion').value.trim();
           const nombre = document.getElementById('g_nombre').value.trim();
 
-          if (!descripcion) { alert("Por favor escriba una descripción."); return; }
-
-          // Envío por POST clásico (form) para evitar CORS
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = WEB_APP_URL;
-          form.style.display = 'none';
-
-          const payload = { tipo, descripcion, nombre, lat, lng };
-          for (const k in payload) {
-            const inp = document.createElement('input');
-            inp.type = 'hidden';
-            inp.name = k;
-            inp.value = payload[k];
-            form.appendChild(inp);
+          if (!descripcion) {
+            alert("Por favor escriba una descripción.");
+            return;
           }
 
-          document.body.appendChild(form);
-          form.submit();
-          setTimeout(()=>document.body.removeChild(form), 1500);
+          const data = new URLSearchParams();
+          data.append("tipo", tipo);
+          data.append("descripcion", descripcion);
+          data.append("nombre", nombre);
+          data.append("lat", lat);
+          data.append("lng", lng);
+
+          // nuevo método CORRECTO
+          fetch(WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: data.toString()
+          });
 
           alert("✓ Reclamo enviado. Gracias.");
           map.removeLayer(marker);
@@ -95,6 +96,3 @@
   </script>
 </body>
 </html>
-
-
-
