@@ -20,6 +20,7 @@
     #map { margin-top:52px; height: calc(100vh - 52px); }
   </style>
 </head>
+
 <body>
   <div class="header">Geo-Reclamos • Río Colorado</div>
   <div id="map"></div>
@@ -71,38 +72,30 @@
             return;
           }
 
-          const data = new URLSearchParams();
-          data.append("tipo", tipo);
-          data.append("descripcion", descripcion);
-          data.append("nombre", nombre);
-          data.append("lat", lat);
-          data.append("lng", lng);
+          const payload = {
+            tipo: tipo,
+            descripcion: descripcion,
+            nombre: nombre,
+            lat: lat,
+            lng: lng
+          };
 
-          // nuevo método CORRECTO
-          // Crear formulario oculto para enviar el POST (evita CORS)
-const form = document.createElement("form");
-form.method = "POST";
-form.action = WEB_APP_URL;
+          try {
+            const response = await fetch(WEB_APP_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
 
-["tipo", "descripcion", "nombre", "lat", "lng"].forEach(k => {
-  const input = document.createElement("input");
-  input.type = "hidden";
-  input.name = k;
-  input.value = eval(k);  // usa las variables definidas arriba
-  form.appendChild(input);
-});
+            alert("✓ Reclamo enviado correctamente.");
+            map.removeLayer(marker);
 
-document.body.appendChild(form);
-form.submit();
-form.remove();
-
-
-          alert("✓ Reclamo enviado. Gracias.");
-          map.removeLayer(marker);
+          } catch (err) {
+            alert("Error al enviar: " + err);
+          }
         };
       });
     });
   </script>
 </body>
 </html>
-
